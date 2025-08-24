@@ -3,52 +3,49 @@ name: إرسال رسالة تيليجرام
 on:
   repository_dispatch:
     types: [send-telegram]
-  workflow_dispatch:
-    inputs:
-      name:
-        description: "اسم المرسل"
-        required: true
-        default: "زائر"
-        type: string
 
 jobs:
   send-telegram:
     runs-on: ubuntu-latest
     steps:
-      - name: التحقق من المتغيرات
+      - name: التحقق من وجود المتغيرات
         run: |
-          echo "تم تشغيل Workflow"
-          echo "BOT_TOKEN موجود: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
-          echo "CHAT_ID موجود: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
-      
-      - name: إعداد البيانات
-        id: set-data
-        run: |
-          # إذا كان هناك اسم مدخل عبر workflow_dispatch
-          if [ -n "${{ github.event.inputs.name }}" ]; then
-            echo "NAME=${{ github.event.inputs.name }}" >> $GITHUB_ENV
-          else
-            # إذا كان هناك اسم في payload
-            if [ -n "${{ github.event.client_payload.name }}" ]; then
-              echo "NAME=${{ github.event.client_payload.name }}" >> $GITHUB_ENV
-            else
-              echo "NAME=زائر" >> $GITHUB_ENV
-            fi
+          if [ -z "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
+            echo "❌ ERROR: TELEGRAM_BOT_TOKEN غير موجود أو فارغ"
+            exit 1
           fi
           
-          # إنشاء نص الرسالة
-          MESSAGE="$NAME يرسل تحياته من GitHub Actions 🚀"
-          echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
-          echo "الرسالة: $MESSAGE"
+          if [ -z "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
+            echo "❌ ERROR: TELEGRAM_CHAT_ID غير موجود أو فارغ"
+            exit 1
+          fi
+          
+          echo "✅ المتغيرات موجودة وجاهزة للاستخدام"
+          echo "BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          echo "CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}"
+      
+      - name: اختبار اتصال التيليجرام
+        run: |
+          # اختبار البوت
+          response=$(curl -s -w "\n%{http_code}" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/getMe")
+          http_code=$(echo "$response" | tail -n1)
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ فشل اختبار البوت: رمز البوت غير صحيح"
+            echo "الرد: $response"
+            exit 1
+          else
+            echo "✅ البوت صالح ويعمل"
+          fi
       
       - name: إرسال رسالة تيليجرام
         run: |
+          # إرسال الرسالة
           response=$(curl -s -w "\n%{http_code}" -X POST \
-          "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$MESSAGE")
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="✅ تم الإرسال بنجاح من GitHub Actions - $(date)")
           
-          # فصل الاستجابة عن كود الحالة
           http_code=$(echo "$response" | tail -n1)
           response_body=$(echo "$response" | sed '$d')
           
@@ -57,6 +54,7 @@ jobs:
           
           if [ "$http_code" != "200" ]; then
             echo "❌ فشل في إرسال الرسالة"
+            echo "تحقق من أن البوت مضاف إلى المجموعة/القناة"
             exit 1
           else
             echo "✅ تم إرسال الرسالة بنجاح"
