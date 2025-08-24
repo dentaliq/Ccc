@@ -1,9 +1,37 @@
+name: إرسال رسالة تيليجرام
+
+on:
+  repository_dispatch:
+    types: [send-telegram]
+  workflow_dispatch:
+
 jobs:
   send-telegram:
     runs-on: ubuntu-latest
     steps:
+      - name: التحقق من المتغيرات
+        run: |
+          echo "تم تشغيل Workflow"
+          echo "BOT_TOKEN موجود: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
+          echo "CHAT_ID موجود: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
+      
       - name: إرسال رسالة تيليجرام
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+          "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="مرحبا من GitHub Actions"
+          -d text="مرحبا من GitHub Actions - تم التشغيل بنجاح ✅")
+          
+          # فصل الاستجابة عن كود الحالة
+          http_code=$(echo "$response" | tail -n1)
+          response_body=$(echo "$response" | sed '$d')
+          
+          echo "كود الحالة: $http_code"
+          echo "رد التيليجرام: $response_body"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ فشل في إرسال الرسالة"
+            exit 1
+          else
+            echo "✅ تم إرسال الرسالة بنجاح"
+          fi
