@@ -1,16 +1,13 @@
-name: إرسال رسالة تيليجرام
+name: Send Telegram Message
 
 on:
   repository_dispatch:
-    types: [send-telegram]
+    types: [send_data]
 
 jobs:
   send-telegram:
     runs-on: ubuntu-latest
     steps:
-      - name: إرسال رسالة تيليجرام
+      - name: Send Message to Telegram
         run: |
-          curl -s -X POST \
-          "https://api.telegram.org/bot${{ secrets.1 }}/sendMessage" \
-          -d chat_id="${{ secrets.2 }}" \
-          -d text="✅ تم الإرسال بنجاح من GitHub Actions"
+          curl -s -X POST https://api.telegram.org/bot$${{ secrets.ab }}/sendMessage -d chat_id=$${{ secrets.bc }} -d text="$${{ github.event.client_payload.message }}"
