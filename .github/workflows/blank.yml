@@ -1,13 +1,9 @@
-on:
-  repository_dispatch:
-    types: [send-telegram]
-
 jobs:
   send-telegram:
     runs-on: ubuntu-latest
     steps:
       - name: إرسال رسالة تيليجرام
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ github.event.client_payload.bot_token }}/sendMessage" \
-               -d chat_id="${{ github.event.client_payload.chat_id }}" \
-               -d text="مرحبا من GitHub Actions"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="مرحبا من GitHub Actions"
