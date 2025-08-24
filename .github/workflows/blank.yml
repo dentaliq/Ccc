@@ -4,6 +4,12 @@ on:
   repository_dispatch:
     types: [send-telegram]
   workflow_dispatch:
+    inputs:
+      name:
+        description: "اسم المرسل"
+        required: true
+        default: "زائر"
+        type: string
 
 jobs:
   send-telegram:
@@ -15,12 +21,32 @@ jobs:
           echo "BOT_TOKEN موجود: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
           echo "CHAT_ID موجود: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
       
+      - name: إعداد البيانات
+        id: set-data
+        run: |
+          # إذا كان هناك اسم مدخل عبر workflow_dispatch
+          if [ -n "${{ github.event.inputs.name }}" ]; then
+            echo "NAME=${{ github.event.inputs.name }}" >> $GITHUB_ENV
+          else
+            # إذا كان هناك اسم في payload
+            if [ -n "${{ github.event.client_payload.name }}" ]; then
+              echo "NAME=${{ github.event.client_payload.name }}" >> $GITHUB_ENV
+            else
+              echo "NAME=زائر" >> $GITHUB_ENV
+            fi
+          fi
+          
+          # إنشاء نص الرسالة
+          MESSAGE="$NAME يرسل تحياته من GitHub Actions 🚀"
+          echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
+          echo "الرسالة: $MESSAGE"
+      
       - name: إرسال رسالة تيليجرام
         run: |
           response=$(curl -s -w "\n%{http_code}" -X POST \
           "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="مرحبا من GitHub Actions - تم التشغيل بنجاح ✅")
+          -d text="$MESSAGE")
           
           # فصل الاستجابة عن كود الحالة
           http_code=$(echo "$response" | tail -n1)
