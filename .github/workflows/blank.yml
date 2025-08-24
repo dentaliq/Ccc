@@ -10,4 +10,4 @@ jobs:
     steps:
       - name: Send Message to Telegram
         run: |
-          curl -s -X POST https://api.telegram.org/bot$${{ secrets.ab }}/sendMessage -d chat_id=$${{ secrets.bc }} -d text="$${{ github.event.client_payload.message }}"
+          curl -s -X POST https://api.telegram.org/bot$${{ secrets.AB }}/sendMessage -d chat_id=$${{ secrets.BC }} -d text="$${{ github.event.client_payload.message }}"
